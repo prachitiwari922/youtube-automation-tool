@@ -9,11 +9,19 @@ from googleapiclient.http import MediaFileUpload
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
-# Load client config from Streamlit Secrets
-client_config = json.loads(st.secrets["GOOGLE_CLIENT_SECRET"])
+# Directly st.secrets se values uthana (No JSON format error!)
+client_config = {
+    "web": {
+        "client_id": st.secrets["CLIENT_ID"],
+        "project_id": "youtube-bot-506207",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": st.secrets["CLIENT_SECRET"],
+        "redirect_uris": ["https://youtube-automation-tool-c9etdpp6kscmn6ddmipdcn.streamlit.app"]
+    }
+}
 
-# Yahan apna Streamlit app ka live URL daal dein (jo aapke browser mein upar dikh raha hai)
-# Jaise: "https://youtube-automation-tool-xxxx.streamlit.app"
 REDIRECT_URI = "https://youtube-automation-tool-c9etdpp6kscmn6ddmipdcn.streamlit.app"
 
 def get_authenticated_service():
