@@ -11,7 +11,6 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 # Load client config from Streamlit Secrets
 client_config = json.loads(st.secrets["GOOGLE_CLIENT_SECRET"])
-REDIRECT_URI = st.secrets["REDIRECT_URI"]
 
 def get_authenticated_service():
     creds = None
@@ -23,13 +22,17 @@ def get_authenticated_service():
             creds.refresh(Request())
             st.session_state["credentials"] = creds
         else:
+            # Automatically use the current app URL as redirect URI
+            redirect_uri = st.experimental_get_url()
+            if "?" in redirect_uri:
+                redirect_uri = redirect_uri.split("?")[0]
+
             flow = Flow.from_client_config(
                 client_config,
                 scopes=SCOPES,
-                redirect_uri=REDIRECT_URI
+                redirect_uri=redirect_uri
             )
             
-            # Check if Google redirected back with an auth code
             auth_code = st.query_params.get("code")
             if auth_code:
                 flow.fetch_token(code=auth_code)
@@ -39,7 +42,7 @@ def get_authenticated_service():
                 st.rerun()
             else:
                 auth_url, _ = flow.authorization_url(prompt="consent")
-                st.markdown(f"### Step 1: [Click here to Connect YouTube Account]({auth_url})")
+                st.markdown(f"### 👉 [Click here to Connect Your YouTube Account]({auth_url})")
                 st.stop()
 
     return build("youtube", "v3", credentials=creds)
@@ -66,9 +69,8 @@ def upload_to_youtube(video_path, title, description):
 # ================= STREAMLIT UI =================
 st.title("🎬 Video Auto-Publisher (Client Tool)")
 
-# Ensure user is authenticated first
 youtube_service = get_authenticated_service()
-st.success("✅ YouTube Account Connected!")
+st.success("✅ YouTube Account Connected Successfully!")
 
 uploaded_file = st.file_uploader("Choose your video file (MP4/MOV)", type=["mp4", "mov", "avi"])
 title = st.text_input("Enter Video Title")
