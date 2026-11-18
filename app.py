@@ -10,7 +10,7 @@ from googleapiclient.http import MediaFileUpload
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 # Load client config from Streamlit Secrets
-client_config = {"web": dict(st.secrets["GOOGLE_CLIENT_SECRET"])}
+client_config = json.loads(st.secrets["GOOGLE_CLIENT_SECRET"])
 
 # Yahan apna Streamlit app ka live URL daal dein (jo aapke browser mein upar dikh raha hai)
 # Jaise: "https://youtube-automation-tool-xxxx.streamlit.app"
