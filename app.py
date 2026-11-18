@@ -12,6 +12,10 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 # Load client config from Streamlit Secrets
 client_config = json.loads(st.secrets["GOOGLE_CLIENT_SECRET"])
 
+# Yahan apna Streamlit app ka live URL daal dein (jo aapke browser mein upar dikh raha hai)
+# Jaise: "https://youtube-automation-tool-xxxx.streamlit.app"
+REDIRECT_URI = "https://youtube-automation-tool-c9etdpp6kscmn6ddmipdcn.streamlit.app"
+
 def get_authenticated_service():
     creds = None
     if "credentials" in st.session_state:
@@ -22,15 +26,10 @@ def get_authenticated_service():
             creds.refresh(Request())
             st.session_state["credentials"] = creds
         else:
-            # Automatically use the current app URL as redirect URI
-            redirect_uri = st.experimental_get_url()
-            if "?" in redirect_uri:
-                redirect_uri = redirect_uri.split("?")[0]
-
             flow = Flow.from_client_config(
                 client_config,
                 scopes=SCOPES,
-                redirect_uri=redirect_uri
+                redirect_uri=REDIRECT_URI
             )
             
             auth_code = st.query_params.get("code")
@@ -92,4 +91,3 @@ if st.button("Upload to YouTube"):
             st.error(f"Upload failed: {e}")
     else:
         st.warning("Please provide both a video file and a title.")
-        
