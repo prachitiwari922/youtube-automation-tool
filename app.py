@@ -36,12 +36,27 @@ def get_client_config():
     }
 
 
-def build_flow():
+def build_flow(state=None):
     return Flow.from_client_config(
         get_client_config(),
         scopes=SCOPES,
+        state=state,
         redirect_uri=REDIRECT_URI,
     )
+
+
+def show_auth_link():
+    flow = build_flow()
+    auth_url, state = flow.authorization_url(
+        prompt="consent",
+        access_type="offline",
+        include_granted_scopes="true",
+    )
+    st.session_state["oauth_state"] = state
+    if getattr(flow, "code_verifier", None):
+        st.session_state["code_verifier"] = flow.code_verifier
+    st.markdown(f"### 👉 [Click here to Connect Your YouTube Account]({auth_url})")
+    st.stop()
 
 
 def get_authenticated_service():
@@ -57,23 +72,16 @@ def get_authenticated_service():
             return build("youtube", "v3", credentials=creds)
         except Exception:
             st.session_state.pop("credentials", None)
-            creds = None
 
     oauth_error = st.query_params.get("error")
     auth_code = st.query_params.get("code")
+    returned_state = st.query_params.get("state")
     used_codes = st.session_state.setdefault("used_codes", set())
 
     if oauth_error:
         st.query_params.clear()
         st.error(f"Google login cancel ya block hua: {oauth_error}")
-        flow = build_flow()
-        auth_url, _ = flow.authorization_url(
-            prompt="consent",
-            access_type="offline",
-            include_granted_scopes="true",
-        )
-        st.markdown(f"### 👉 [Click here to Connect Your YouTube Account]({auth_url})")
-        st.stop()
+        show_auth_link()
 
     if auth_code:
         if auth_code in used_codes:
@@ -81,31 +89,26 @@ def get_authenticated_service():
             st.rerun()
 
         used_codes.add(auth_code)
-        flow = build_flow()
+        saved_state = st.session_state.get("oauth_state") or returned_state
+        flow = build_flow(state=saved_state)
+
+        if st.session_state.get("code_verifier"):
+            flow.code_verifier = st.session_state["code_verifier"]
+
         try:
             flow.fetch_token(code=auth_code)
             st.session_state["credentials"] = flow.credentials
+            st.session_state.pop("code_verifier", None)
+            st.session_state.pop("oauth_state", None)
             st.query_params.clear()
             st.rerun()
         except Exception as e:
             st.query_params.clear()
+            st.session_state.pop("code_verifier", None)
             st.error(f"Token exchange error: {e}")
-            auth_url, _ = flow.authorization_url(
-                prompt="consent",
-                access_type="offline",
-                include_granted_scopes="true",
-            )
-            st.markdown(f"### 👉 [Click here to Connect Your YouTube Account]({auth_url})")
-            st.stop()
+            show_auth_link()
 
-    flow = build_flow()
-    auth_url, _ = flow.authorization_url(
-        prompt="consent",
-        access_type="offline",
-        include_granted_scopes="true",
-    )
-    st.markdown(f"### 👉 [Click here to Connect Your YouTube Account]({auth_url})")
-    st.stop()
+    show_auth_link()
 
 
 def upload_to_youtube(youtube, video_path, title, description):
